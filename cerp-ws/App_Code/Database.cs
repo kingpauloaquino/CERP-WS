@@ -9,45 +9,102 @@ using System.Data;
 /// <summary>
 /// Summary description for Database
 /// </summary>
-public class Database
+public static class Database
 {
-    public string sql = "";
-    public string table = "";
+    static DataTable dt;
 
-	public Database()
-	{
-		//
-		// TODO: Add constructor logic here
-		//
-	}
-
-    private MySqlConnection Connect()
+    public static string defaultConnectionString
     {
-        string conn = System.Configuration.ConfigurationManager.ConnectionStrings["str_con"].ConnectionString;
-        MySqlConnection con = new MySqlConnection(conn);
-        return con;
+        get;
+        private set;
     }
 
-    public DataTable Query(string _sql)
-    {
-        MySqlConnection con = Connect();
-        MySqlDataAdapter da = new MySqlDataAdapter(_sql, con);
-        DataTable dt = new DataTable("table");
-        try
-        {
-            con.Open();
-            da.Fill(dt);
-            dt = (dt.Rows.Count > 0) ? dt : null;
-            con.Close();
-        }
-        catch (Exception ex)
-        {
+	static Database()
+	{
+        Database.defaultConnectionString = System.Configuration.ConfigurationManager.ConnectionStrings["str_con"].ConnectionString;
+	}
 
+    private static MySqlConnection Create()
+    {
+        return new MySqlConnection(Database.defaultConnectionString);
+    }
+
+    public static DataTable Query(string sql)
+    {
+        if (TestCon())
+        {
+            using (var connection = Database.Create())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    using (var da = new MySqlDataAdapter(command.CommandText, connection))
+                    {
+                        try
+                        {
+                            dt = new DataTable("table");
+                            da.Fill(dt);
+                            dt = (dt.Rows.Count > 0) ? dt : null;
+                        }
+                        catch (Exception ex)
+                        {
+                            return Functions.FormatDTReturn(-1, ex.Message);
+                        }
+                    }
+                }
+            }
         }
-        finally
-        { 
-        
+        else
+        {
+            return Functions.FormatDTReturn(-1, "Unable to connect to database.");
         }
         return dt;
+    }
+
+    public static object InsertRecord(string sql, bool returnSeed)
+    {
+        if (TestCon())
+        {
+            using (var connection = Database.Create())
+            {
+                using ( var cmd = new MySqlCommand(sql, connection))
+                {
+                    try
+                    {
+                        // return (returnSeed) ? cmd.ExecuteScalar() : cmd.ExecuteNonQuery();
+                        connection.Open();
+                        if (returnSeed)
+                        {
+                            return cmd.ExecuteScalar();
+                        }
+                        return cmd.ExecuteNonQuery();
+                    }
+                    catch (Exception ex)
+                    {
+                        return Functions.FormatReturn(-1, ex.Message);
+                    }
+                }
+            }
+        }
+        else
+        {
+            return Functions.FormatReturn(-1, "Unable to connect to database.");
+        }
+    }
+
+    public static bool TestCon()
+    {
+        using (var con = new MySqlConnection(Database.defaultConnectionString))
+        {
+            try
+            {
+                con.Open();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
     }
 }

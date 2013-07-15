@@ -27,4 +27,15 @@ public static class Functions
 
         return result;
     }
+
+    public static DataTable FormatDTReturn(int _flag, string _result)
+    {
+        using (DataTable dt = new DataTable("table"))
+        {
+            dt.Columns.Add("flag");
+            dt.Columns.Add("result");
+            dt.Rows.Add(_flag, _result);
+            return dt;
+        }
+    }
 }
