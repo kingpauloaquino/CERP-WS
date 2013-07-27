@@ -73,4 +73,14 @@ public static class Functions
             return "";
         }
     }
+
+    public enum status
+    { 
+        pending = 19,
+        incomplete = 22,
+        complete = 21,
+        open = 13,
+        close = 14,
+
+    }
 }
