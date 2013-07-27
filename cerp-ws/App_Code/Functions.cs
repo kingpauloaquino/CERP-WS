@@ -38,4 +38,39 @@ public static class Functions
             return dt;
         }
     }
+
+    public static DataTable StringParser(string ws_result)
+    {
+        StringReader sr = new StringReader(ws_result);
+        DataSet ds = new DataSet();
+        DataTable dt = new DataTable("table");
+        ds.ReadXml(sr);
+        dt = ds.Tables[0];
+        return dt;
+    }
+
+
+    public static string DefaultDateFormat(DateTime dt)
+    {
+        return dt.ToString("yyyy-MM-dd");
+    }
+
+    public static string DefaultDateTimeFormat(DateTime dt)
+    {
+        return dt.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    public static string IfError(string result)
+    {
+        DataTable dt = new DataTable();
+        dt = StringParser(result);
+        if (dt.Rows[0].ItemArray[0].ToString() == "-1")
+        {
+            return "ERROR: " + dt.Rows[0].ItemArray[1].ToString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 }

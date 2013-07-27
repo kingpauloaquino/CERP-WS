@@ -185,6 +185,13 @@ public static class Queries
         return result;
     }
 
+    internal static string AdjustStockItem(int inventory_id, double qty, string remarks)
+    {
+        return Database.UpdateRecord("UPDATE warehouse_inventories SET remarks='" + remarks.Trim() +
+                                    "', qty=" + qty.ToString() +
+                                    " WHERE id=" + inventory_id.ToString());
+    }
+
     internal static string GetDeliveries()
     {
         sql = "SELECT " +
@@ -195,7 +202,7 @@ public static class Queries
             "JOIN suppliers ON suppliers.id = supplier_id " +
             "JOIN lookup_status ON lookup_status.id = deliveries.status " +
             "JOIN lookup_status AS lookup_status2 ON lookup_status2.id = deliveries.completion_status " +
-            "WHERE lookup_status.description = 'Open' AND lookup_status2.description != 'Complete' ";
+            "WHERE lookup_status2.description != 'Complete' ";
         dt = new DataTable();
         dt = Database.Query(sql);
         if (dt != null)
@@ -260,4 +267,90 @@ public static class Queries
         }
         return result;
     }
+
+    internal static string ReceiveDelivery(int delivery_id, string invoice, string receipt, string lot_no, string receiving_remarks, string items)
+    {
+        // set delivery_items to 22 (incomplete)
+        result = Database.UpdateRecord("UPDATE delivery_items SET status=22 WHERE delivery_id=" + delivery_id);
+        if (Functions.IfError(result) != "") { return result; }
+
+        DataTable dt = new DataTable();
+        dt = Functions.StringParser(items);
+
+        int id, item_id, status;
+        double received;
+        string remarks;
+
+        int complete_flag = 0;
+        int count = dt.Rows.Count;
+        for (int i = 0; i < count; i++)
+        {
+            // index format: 0:id, 1:item_id, 2:received, 3:status, 4:remarks
+            id = Convert.ToInt32(dt.Rows[i].ItemArray[0]); 
+            item_id = Convert.ToInt32(dt.Rows[i].ItemArray[1]); 
+            received = Convert.ToDouble(dt.Rows[i].ItemArray[2]); 
+            status = Convert.ToInt32(dt.Rows[i].ItemArray[3]); 
+            remarks = dt.Rows[i].ItemArray[4].ToString();
+
+            // update received quantities
+            result = Database.UpdateRecord("UPDATE delivery_items SET " +
+                                    "invoice='" + invoice + "', " +
+                                    "receipt='" + receipt + "', " +
+                                    "receive_date='" + Functions.DefaultDateFormat(DateTime.Now) + "', " +
+                                    "received=" + received.ToString() + ", " +
+                                    "remarks='" + remarks + "', " +
+                                    "status=" + status.ToString() + ", " +
+                                    "updated_at='"+ Functions.DefaultDateTimeFormat(DateTime.Now) +"' " +
+                                    "WHERE id=" + id.ToString() +
+                                    "");
+            if (Functions.IfError(result) != "") { return result; }
+
+            // add to wh stock
+            result = Database.InsertRecord("INSERT INTO warehouse_inventories " +
+                                    "(item_id, item_type, invoice_no, lot_no, qty, remarks) " +
+                                    "VALUES " +
+                                    "(" + item_id + ", 'MAT', '" + invoice + "', '" + lot_no + "', "+ received.ToString() +" , '" + remarks + "' ) "+
+                                    "", false).ToString();
+            if (Functions.IfError(result) != "") { return result; }
+
+            if (status == 21)
+            {
+                complete_flag += 1;
+            }
+        }
+        int completion_status = 0;
+        if (count > 0)
+        {
+            completion_status = (count == complete_flag) ? 6 : 5; // status6 = complete, 5=partial
+        }
+        result = Database.UpdateRecord("UPDATE deliveries SET " +
+                                "remarks='" + receiving_remarks + "', " +
+                                "status=14, " + // status 14 = complete
+                                "completion_status=" + completion_status + " " +
+                                "WHERE id=" + delivery_id +
+                                "");
+        if (Functions.IfError(result) != "") { return result; }
+
+        // get delivery purchase id
+        int purchase_id = 0;
+        sql = "SELECT purchase_id FROM deliveries WHERE id=" + delivery_id;
+        dt = new DataTable();
+        dt = Database.Query(sql);
+        if (dt != null)
+        {
+            purchase_id = (int)dt.Rows[0].ItemArray[0];
+        }
+
+        // update purchase status
+        result = Database.UpdateRecord("UPDATE purchases SET " +
+                                "completion_status=" + completion_status + " " +
+                                "WHERE id=" + purchase_id +
+                                "");
+        if (Functions.IfError(result) != "") { return result; }
+
+        return Functions.FormatReturn(1, "Receiving successful.");
+    }
+
+
+    // SELECT LAST_INSERT_ID();
 }

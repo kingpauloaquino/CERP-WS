@@ -29,6 +29,7 @@ public static class Database
         return new MySqlConnection(Database.defaultConnectionString);
     }
 
+    // returns DataTable type collection
     public static DataTable Query(string sql)
     {
         if (TestCon())
@@ -61,6 +62,7 @@ public static class Database
         return dt;
     }
 
+    // returns new identity seed if returnSeed==True
     public static object InsertRecord(string sql, bool returnSeed)
     {
         if (TestCon())
@@ -71,13 +73,35 @@ public static class Database
                 {
                     try
                     {
-                        // return (returnSeed) ? cmd.ExecuteScalar() : cmd.ExecuteNonQuery();
                         connection.Open();
-                        if (returnSeed)
-                        {
-                            return cmd.ExecuteScalar();
-                        }
-                        return cmd.ExecuteNonQuery();
+                        return (returnSeed) ? cmd.ExecuteScalar() : cmd.ExecuteNonQuery();
+                    }
+                    catch (Exception ex)
+                    {
+                        return Functions.FormatReturn(-1, ex.Message);
+                    }
+                }
+            }
+        }
+        else
+        {
+            return Functions.FormatReturn(-1, "Unable to connect to database.");
+        }
+    }
+
+    // returns number of updated record
+    public static string UpdateRecord(string sql)
+    {
+        if (TestCon())
+        {
+            using (var connection = Database.Create())
+            {
+                using (var cmd = new MySqlCommand(sql, connection))
+                {
+                    try
+                    {
+                        connection.Open();
+                        return Functions.FormatReturn(cmd.ExecuteNonQuery(), "Update successful.");
                     }
                     catch (Exception ex)
                     {
