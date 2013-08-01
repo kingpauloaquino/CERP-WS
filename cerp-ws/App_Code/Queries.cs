@@ -15,12 +15,12 @@ public static class Queries
     static string sql;
     static DataTable dt;
 
-	static Queries()
-	{
-		//
-		// TODO: Add constructor logic here
-		//
-	}
+    static Queries()
+    {
+        //
+        // TODO: Add constructor logic here
+        //
+    }
 
     internal static bool IsExisting(string barcode, string type)
     {
@@ -268,7 +268,7 @@ public static class Queries
         return result;
     }
 
-    internal static string ReceiveDelivery(int delivery_id, string invoice, string receipt, string lot_no, string receiving_remarks, string items)
+    internal static string ReceiveMaterials(int delivery_id, string invoice, string receipt, string lot_no, string receiving_remarks, string items)
     {
         // set delivery_items to 22 (incomplete)
         result = Database.UpdateRecord("UPDATE delivery_items SET status=22 WHERE delivery_id=" + delivery_id);
@@ -286,10 +286,10 @@ public static class Queries
         for (int i = 0; i < count; i++)
         {
             // index format: 0:id, 1:item_id, 2:received, 3:status, 4:remarks
-            id = Convert.ToInt32(dt.Rows[i].ItemArray[0]); 
-            item_id = Convert.ToInt32(dt.Rows[i].ItemArray[1]); 
-            received = Convert.ToDouble(dt.Rows[i].ItemArray[2]); 
-            status = Convert.ToInt32(dt.Rows[i].ItemArray[3]); 
+            id = Convert.ToInt32(dt.Rows[i].ItemArray[0]);
+            item_id = Convert.ToInt32(dt.Rows[i].ItemArray[1]);
+            received = Convert.ToDouble(dt.Rows[i].ItemArray[2]);
+            status = Convert.ToInt32(dt.Rows[i].ItemArray[3]);
             remarks = dt.Rows[i].ItemArray[4].ToString();
 
             // update received quantities
@@ -300,7 +300,7 @@ public static class Queries
                                     "received=" + received.ToString() + ", " +
                                     "remarks='" + remarks + "', " +
                                     "status=" + status.ToString() + ", " +
-                                    "updated_at='"+ Functions.DefaultDateTimeFormat(DateTime.Now) +"' " +
+                                    "updated_at='" + Functions.DefaultDateTimeFormat(DateTime.Now) + "' " +
                                     "WHERE id=" + id.ToString() +
                                     "");
             if (Functions.IfError(result) != "") { return result; }
@@ -309,9 +309,17 @@ public static class Queries
             result = Database.InsertRecord("INSERT INTO warehouse_inventories " +
                                     "(item_id, item_type, invoice_no, lot_no, qty, remarks) " +
                                     "VALUES " +
-                                    "(" + item_id + ", 'MAT', '" + invoice + "', '" + lot_no + "', "+ received.ToString() +" , '" + remarks + "' ) "+
+                                    "(" + item_id + ", 'MAT', '" + invoice + "', '" + lot_no + "', " + received.ToString() + " , '" + remarks + "' ) " +
                                     "", false).ToString();
-            if (Functions.IfError(result) != "") { return result; }
+
+            if (result.GetType() == typeof(System.String))
+            {
+                if (result != "")
+                {
+                    if (Functions.IfError(result) != "") { return result; }
+                }
+            }
+
 
             if (status == 21)
             {
@@ -351,6 +359,65 @@ public static class Queries
         return Functions.FormatReturn(1, "Receiving successful.");
     }
 
+    internal static string GetMaterialIssuance()
+    {
+        sql = "SELECT " +
+                "mr.id, mr.request_no, mr.batch_no, mr.requested_date, mr.expected_date, mr.remarks, l.description AS completion_status " +
+            "FROM material_requests AS mr " +
+            "JOIN lookup_status AS l ON l.id = mr.completion_status " +
+            "WHERE l.description = 'Issued' ";
+        dt = new DataTable();
+        dt = Database.Query(sql);
+        if (dt != null)
+        {
+            if (dt.Rows[0].ItemArray[0].ToString() == "-1")
+            {
+                result = dt.Rows[0].ItemArray[1].ToString();
+            }
+            else
+            {
+                StringWriter sw = new StringWriter();
+                dt.WriteXml(sw);
+                result = sw.ToString();
+            }
+        }
+        else
+        {
+            result = Functions.FormatReturn(0, "No items found");
+        }
+        return result;
+    }
 
+    internal static string GetMaterialIssuanceItems(int request_id)
+    {
+        sql = "SELECT " +
+                "issue.id AS issue_id, materials.material_code AS code, wh.lot_no, issue.qty, issue.status, loc.address " +
+            "FROM material_request_items AS req " +
+            "LEFT OUTER JOIN material_request_item_issuances AS issue ON issue.request_item_id = req.id " +
+            "JOIN warehouse_inventories AS wh ON wh.id = issue.warehouse_inventory_id " +
+            "JOIN materials ON materials.id = req.material_id " +
+            "LEFT OUTER JOIN location_addresses AS loc ON loc.id = materials.address " +
+            "WHERE request_id=" + request_id.ToString();
+        dt = new DataTable();
+        dt = Database.Query(sql);
+        if (dt != null)
+        {
+            if (dt.Rows[0].ItemArray[0].ToString() == "-1")
+            {
+                result = dt.Rows[0].ItemArray[1].ToString();
+            }
+            else
+            {
+                StringWriter sw = new StringWriter();
+                dt.WriteXml(sw);
+                result = sw.ToString();
+            }
+        }
+        else
+        {
+            result = Functions.FormatReturn(0, "No items found");
+        }
+        return result;
+    }
     // SELECT LAST_INSERT_ID();
 }

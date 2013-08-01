@@ -16,7 +16,8 @@ using System.IO;
 public class CERPService : System.Web.Services.WebService
 {
 
-    public CERPService () {
+    public CERPService()
+    {
 
         //Uncomment the following line if using designed components 
         //InitializeComponent(); 
@@ -72,12 +73,20 @@ public class CERPService : System.Web.Services.WebService
     [WebMethod(Description = "Receive Deliveries")]
     public string ReceiveDelivery(int delivery_id, string invoice, string receipt, string lot_no, string receiving_remarks, string items)
     {
-        return Queries.ReceiveDelivery(delivery_id, invoice, receipt, lot_no, receiving_remarks, items);
+        return Queries.ReceiveMaterials(delivery_id, invoice, receipt, lot_no, receiving_remarks, items);
     }
 
+    [WebMethod(Description = "Return Material Request Issuances")]
+    public string GetMaterialIssuance()
+    {
+        return Queries.GetMaterialIssuance();
+    }
 
-
-
+    [WebMethod(Description = "Return Material Request Issuance Items and Lot Nos.")]
+    public string GetMaterialIssuanceItems(int request_id)
+    {
+        return Queries.GetMaterialIssuanceItems(request_id);
+    }
 
     //[WebMethod(Description = "Sample WS Consumer, single record")]
     public string Consumer1()
@@ -90,7 +99,7 @@ public class CERPService : System.Web.Services.WebService
         DataTable dt = new DataTable();
         dt = Functions.StringParser(ws_result);
 
-        string parsed_result="";
+        string parsed_result = "";
         if (dt.Rows[0].ItemArray[0].ToString() == "0")
         {
             parsed_result = "ERROR: " + dt.Rows[0].ItemArray[1].ToString();
@@ -115,7 +124,7 @@ public class CERPService : System.Web.Services.WebService
         DataTable dt = new DataTable();
         dt = Functions.StringParser(ws_result);
 
-        string parsed_result="";
+        string parsed_result = "";
         if (dt.Rows[0].ItemArray[0].ToString() == "0")
         {
             parsed_result = "ERROR: " + dt.Rows[0].ItemArray[1].ToString();

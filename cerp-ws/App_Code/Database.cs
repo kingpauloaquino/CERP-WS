@@ -19,10 +19,10 @@ public static class Database
         private set;
     }
 
-	static Database()
-	{
+    static Database()
+    {
         Database.defaultConnectionString = System.Configuration.ConfigurationManager.ConnectionStrings["str_con"].ConnectionString;
-	}
+    }
 
     private static MySqlConnection Create()
     {
@@ -69,12 +69,21 @@ public static class Database
         {
             using (var connection = Database.Create())
             {
-                using ( var cmd = new MySqlCommand(sql, connection))
+                using (var cmd = new MySqlCommand(sql, connection))
                 {
                     try
                     {
                         connection.Open();
-                        return (returnSeed) ? cmd.ExecuteScalar() : cmd.ExecuteNonQuery();
+                        if (returnSeed)
+                        {
+                            return cmd.ExecuteScalar();
+                        }
+                        else
+                        {
+                            cmd.ExecuteNonQuery();
+                            return "";
+                        }
+                        // return (returnSeed) ? cmd.ExecuteScalar() : cmd.ExecuteNonQuery();
                     }
                     catch (Exception ex)
                     {
