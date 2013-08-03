@@ -6,7 +6,7 @@ using System.Data;
 using System.IO;
 
 /// <summary>
-/// Summary description for Queries
+/// Contains all query logic for CERP Service
 /// </summary>
 public static class Queries
 {
@@ -418,6 +418,60 @@ public static class Queries
             result = Functions.FormatReturn(0, "No items found");
         }
         return result;
+    }
+
+    internal static string ReleaseMaterials(int device_id, int request_id, string items)
+    {
+        DataTable dt = new DataTable();
+        dt = Functions.StringParser(items);
+
+        int issue_id, req_item_id;
+
+        int count = dt.Rows.Count;
+        for (int i = 0; i < count; i++)
+        {
+            // index format: 0:issue_id, 1:request_item_id
+            issue_id = Convert.ToInt32(dt.Rows[i].ItemArray[0]);
+            req_item_id = Convert.ToInt32(dt.Rows[i].ItemArray[1]);
+
+            // update issuance items status
+            result = Database.UpdateRecord("UPDATE material_request_item_issuances SET " +
+                                    "status=" + Convert.ToInt32(Functions.Status.Released).ToString() + ", " +
+                                    "device_id=" + device_id.ToString() + ", " +
+                                    "updated_at='" + Functions.DefaultDateTimeFormat(DateTime.Now) + "' " +
+                                    "WHERE id=" + issue_id.ToString() +
+                                    "");
+            if (Functions.IfError(result) != "") { return result; }
+
+            // update request items status
+            result = Database.UpdateRecord("UPDATE material_request_items SET " +
+                                    "status=" + Convert.ToInt32(Functions.Status.Released).ToString() + ", " +
+                                    "updated_at='" + Functions.DefaultDateTimeFormat(DateTime.Now) + "' " +
+                                    "WHERE id=" + req_item_id.ToString() +
+                                    "");
+            if (Functions.IfError(result) != "") { return result; }
+        }
+
+        // check all items if released
+        sql = "SELECT COUNT(id) AS issues FROM material_request_items WHERE status=" + Convert.ToInt32(Functions.Status.Issued).ToString() + " AND request_id=" + request_id.ToString();
+        dt = new DataTable();
+        dt = Database.Query(sql);
+        if (dt != null)
+        {
+            if (Convert.ToInt32(dt.Rows[0].ItemArray[0]) == 0)
+            { 
+                // zero issue, all released
+                // update request items status
+                result = Database.UpdateRecord("UPDATE material_requests SET " +
+                                        "completion_status=" + Convert.ToInt32(Functions.Status.Released).ToString() + ", " +
+                                        "updated_at='" + Functions.DefaultDateTimeFormat(DateTime.Now) + "' " +
+                                        "WHERE id=" + request_id.ToString() +
+                                        "");
+                if (Functions.IfError(result) != "") { return result; }
+            }
+        }
+
+        return Functions.FormatReturn(1, "Materials released.");
     }
     // SELECT LAST_INSERT_ID();
 }

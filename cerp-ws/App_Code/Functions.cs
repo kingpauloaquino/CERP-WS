@@ -6,7 +6,7 @@ using System.Data;
 using System.IO;
 
 /// <summary>
-/// Summary description for Functions
+/// Contains all functions/utilities for CERP Service
 /// </summary>
 public static class Functions
 {
@@ -74,13 +74,15 @@ public static class Functions
         }
     }
 
-    public enum status
+    public enum Status
     { 
-        pending = 19,
-        incomplete = 22,
-        complete = 21,
-        open = 13,
-        close = 14,
-
+        Pending = 19,
+        Incomplete = 22,
+        Complete = 21,
+        Open = 13,
+        Close = 14,
+        Issued = 24,
+        Released = 25,
+        Received = 26
     }
 }

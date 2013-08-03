@@ -7,7 +7,7 @@ using System.Collections;
 using System.Data;
 
 /// <summary>
-/// Summary description for Database
+/// Contains database functions for CERP Service queries.
 /// </summary>
 public static class Database
 {

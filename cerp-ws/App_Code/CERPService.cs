@@ -8,10 +8,11 @@ using System.Text;
 using System.Data;
 using System.IO;
 
-[WebService(Namespace = "http://cerp.com/")]
+[WebService(Namespace = "http://cerp.com/", Description = "CERP Terminal Scanners Services")]
 [WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
 // To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
 // [System.Web.Script.Services.ScriptService]
+
 
 public class CERPService : System.Web.Services.WebService
 {
@@ -86,6 +87,12 @@ public class CERPService : System.Web.Services.WebService
     public string GetMaterialIssuanceItems(int request_id)
     {
         return Queries.GetMaterialIssuanceItems(request_id);
+    }
+
+    [WebMethod(Description = "Release issued materials.\n@param items Items: [0]issue_id, [1]request_item_id.")]
+    public string ReleaseMaterials(int device_id, int request_id, string items)
+    {
+        return Queries.ReleaseMaterials(device_id, request_id, items);
     }
 
     //[WebMethod(Description = "Sample WS Consumer, single record")]
